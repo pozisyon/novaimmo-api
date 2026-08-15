@@ -1,0 +1,23 @@
+package com.novaimmo.demo.payment;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface PaymentRepository
+        extends JpaRepository<Payment, Long> {
+
+    List<Payment>
+    findByTransactionIdOrderByCreatedAtAsc(
+            Long transactionId
+    );
+
+    Optional<Payment> findByReference(
+            String reference
+    );
+    List<Payment>
+    findByTransactionClientIdOrderByCreatedAtDesc(
+            Long clientId
+    );
+}
