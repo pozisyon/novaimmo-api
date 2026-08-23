@@ -485,4 +485,25 @@ public class TransactionService {
                 transaction.getUpdatedAt()
         );
     }
+    @Transactional
+    public TransactionResponse assignAgent(
+            Long transactionId,
+            Long agentId
+    ) {
+
+        Transaction transaction =
+                transactionRepository
+                        .findById(transactionId)
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Transaction introuvable"
+                                )
+                        );
+
+        transaction.setAgentId(agentId);
+
+        return toResponse(
+                transactionRepository.save(transaction)
+        );
+    }
 }

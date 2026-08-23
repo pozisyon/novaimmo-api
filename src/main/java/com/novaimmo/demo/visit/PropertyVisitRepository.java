@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface PropertyVisitRepository
         extends JpaRepository<PropertyVisit, Long> {
@@ -25,5 +26,15 @@ public interface PropertyVisitRepository
             Long propertyId,
             LocalDateTime dateVisite
     );
+    long countByAgentId(
+            Long agentId
+    );
+
+    Optional<PropertyVisit> findByIdAndAgentId(
+            Long id,
+            Long agentId
+    );
+    long countByStatut(String statut);
+
 
 }

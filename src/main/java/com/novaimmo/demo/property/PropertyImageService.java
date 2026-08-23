@@ -6,19 +6,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-
+import org.springframework.web.multipart.MultipartFile;
     @Service
     public class PropertyImageService {
 
         private final PropertyRepository propertyRepository;
         private final PropertyImageRepository imageRepository;
+        private final PropertyImageStorageService storageService;
 
         public PropertyImageService(
                 PropertyRepository propertyRepository,
-                PropertyImageRepository imageRepository
+                PropertyImageRepository imageRepository,
+                PropertyImageStorageService storageService
         ) {
-            this.propertyRepository = propertyRepository;
-            this.imageRepository = imageRepository;
+
+            this.propertyRepository =
+                    propertyRepository;
+
+            this.imageRepository =
+                    imageRepository;
+
+            this.storageService =
+                    storageService;
         }
 
 
@@ -215,4 +224,99 @@ import java.util.List;
             );
         }
 
+        @Transactional
+        public PropertyImageResponse upload(
+                Long propertyId,
+                MultipartFile file,
+                String titre,
+                Boolean principale,
+                Integer ordreAffichage
+        ) {
+
+            Property property =
+                    propertyRepository
+                            .findById(propertyId)
+                            .orElseThrow(
+                                    () -> new RuntimeException(
+                                            "Propriété introuvable : "
+                                                    + propertyId
+                                    )
+                            );
+
+
+            boolean main =
+                    Boolean.TRUE.equals(
+                            principale
+                    );
+
+
+            if (main) {
+
+                imageRepository
+                        .findByPropertyIdAndPrincipaleTrue(
+                                propertyId
+                        )
+                        .ifPresent(
+                                current -> {
+
+                                    current.setPrincipale(
+                                            false
+                                    );
+
+                                    imageRepository.save(
+                                            current
+                                    );
+                                }
+                        );
+            }
+
+
+            String imageUrl =
+                    storageService.store(
+                            propertyId,
+                            file
+                    );
+
+
+            PropertyImage image =
+                    new PropertyImage();
+
+
+            image.setProperty(
+                    property
+            );
+
+
+            image.setImageUrl(
+                    imageUrl
+            );
+
+
+            image.setTitre(
+                    titre
+            );
+
+
+            image.setPrincipale(
+                    main
+            );
+
+
+            image.setOrdreAffichage(
+                    ordreAffichage == null
+                            ? 0
+                            : ordreAffichage
+            );
+
+
+            PropertyImage saved =
+                    imageRepository.save(
+                            image
+                    );
+
+
+            return toResponse(
+                    saved
+            );
+        }
 }

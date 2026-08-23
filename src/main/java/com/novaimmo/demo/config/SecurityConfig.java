@@ -1,5 +1,11 @@
 package com.novaimmo.demo.config;
 
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
+
 import com.novaimmo.demo.auth.JwtAuthenticationFilter;
 
 import org.springframework.context.annotation.Bean;
@@ -112,12 +118,21 @@ public class SecurityConfig {
         http
 
                 /*
-                 * =================================================
+                 * ================================
+                 * CORS
+                 * ================================
+                 */
+                .cors(cors ->
+                        cors.configurationSource(
+                                corsConfigurationSource()
+                        )
+                )
+
+
+                /*
+                 * ================================
                  * CSRF
-                 * =================================================
-                 *
-                 * L'application utilise une API REST avec JWT.
-                 * Nous n'utilisons donc pas une session classique.
+                 * ================================
                  */
                 .csrf(csrf ->
                         csrf.disable()
@@ -125,14 +140,11 @@ public class SecurityConfig {
 
 
                 /*
-                 * =================================================
+                 * ================================
                  * SESSION
-                 * =================================================
-                 *
-                 * JWT = application stateless.
+                 * ================================
                  */
                 .sessionManagement(session ->
-
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
@@ -140,35 +152,40 @@ public class SecurityConfig {
 
 
                 /*
-                 * =================================================
+                 * ================================
                  * AUTORISATIONS
-                 * =================================================
+                 * ================================
                  */
                 .authorizeHttpRequests(auth -> auth
 
+                        // ==========================================
+                        // AUTH
+                        // ==========================================
 
-                        /*
-                         * =========================================
-                         * AUTHENTIFICATION
-                         * =========================================
-                         *
-                         * Login et inscription accessibles
-                         * sans JWT.
-                         */
                         .requestMatchers(
-                                "/api/auth/**"
+                                "/api/auth/**",
+                                "/api/properties/**",
+                                "/uploads/**"
                         )
                         .permitAll()
 
 
-                        /*
-                         * =========================================
-                         * PROPRIETES - CONSULTATION PUBLIQUE
-                         * =========================================
-                         *
-                         * Tout le monde peut consulter
-                         * les annonces immobilières.
-                         */
+                        // ==========================================
+                        // VISITE PUBLIQUE D'UNE PROPRIETE
+                        // IMPORTANT : AVANT /api/properties/**
+                        // ==========================================
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/properties/*/visits"
+                        )
+                        .permitAll()
+
+
+                        // ==========================================
+                        // PROPRIETES - CONSULTATION PUBLIQUE
+                        // ==========================================
+
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/properties/**"
@@ -176,14 +193,10 @@ public class SecurityConfig {
                         .permitAll()
 
 
-                        /*
-                         * =========================================
-                         * PROPRIETES - CREATION
-                         * =========================================
-                         *
-                         * Seuls ADMIN et AGENT peuvent
-                         * publier une propriété.
-                         */
+                        // ==========================================
+                        // PROPRIETES - CREATION
+                        // ==========================================
+
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/properties/**"
@@ -194,11 +207,10 @@ public class SecurityConfig {
                         )
 
 
-                        /*
-                         * =========================================
-                         * PROPRIETES - MODIFICATION
-                         * =========================================
-                         */
+                        // ==========================================
+                        // PROPRIETES - MODIFICATION
+                        // ==========================================
+
                         .requestMatchers(
                                 HttpMethod.PUT,
                                 "/api/properties/**"
@@ -219,11 +231,10 @@ public class SecurityConfig {
                         )
 
 
-                        /*
-                         * =========================================
-                         * PROPRIETES - SUPPRESSION
-                         * =========================================
-                         */
+                        // ==========================================
+                        // PROPRIETES - SUPPRESSION
+                        // ==========================================
+
                         .requestMatchers(
                                 HttpMethod.DELETE,
                                 "/api/properties/**"
@@ -234,14 +245,10 @@ public class SecurityConfig {
                         )
 
 
-                        /*
-                         * =========================================
-                         * CONTACT
-                         * =========================================
-                         *
-                         * Un visiteur peut envoyer un message
-                         * depuis le site vitrine.
-                         */
+                        // ==========================================
+                        // CONTACT
+                        // ==========================================
+
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/contacts"
@@ -249,11 +256,6 @@ public class SecurityConfig {
                         .permitAll()
 
 
-                        /*
-                         * Seuls les agents et administrateurs
-                         * peuvent consulter et traiter
-                         * les messages.
-                         */
                         .requestMatchers(
                                 "/api/contacts/**"
                         )
@@ -263,29 +265,10 @@ public class SecurityConfig {
                         )
 
 
-                        /*
-                         * =========================================
-                         * VISITES IMMOBILIERES
-                         * =========================================
-                         *
-                         * Une personne peut demander une visite
-                         * même sans compte.
-                         */
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/properties/*/visits"
-                        )
-                        .permitAll()
+                        // ==========================================
+                        // VISITES - CLIENT
+                        // ==========================================
 
-
-                        /*
-                         * Client connecté :
-                         * consulter uniquement ses visites.
-                         *
-                         * IMPORTANT :
-                         * cette règle doit être placée AVANT
-                         * /api/visits/**
-                         */
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/visits/me"
@@ -293,15 +276,10 @@ public class SecurityConfig {
                         .authenticated()
 
 
-                        /*
-                         * Gestion des visites.
-                         *
-                         * Liste globale,
-                         * confirmation,
-                         * report,
-                         * affectation agent,
-                         * visite effectuée, etc.
-                         */
+                        // ==========================================
+                        // VISITES - ADMIN / AGENT
+                        // ==========================================
+
                         .requestMatchers(
                                 "/api/visits/**"
                         )
@@ -311,14 +289,10 @@ public class SecurityConfig {
                         )
 
 
-                        /*
-                         * =========================================
-                         * RENDEZ-VOUS
-                         * =========================================
-                         *
-                         * Une personne peut demander
-                         * un rendez-vous sans compte.
-                         */
+                        // ==========================================
+                        // RENDEZ-VOUS
+                        // ==========================================
+
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/appointments"
@@ -326,10 +300,6 @@ public class SecurityConfig {
                         .permitAll()
 
 
-                        /*
-                         * Client connecté :
-                         * consulter ses rendez-vous.
-                         */
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/appointments/me"
@@ -337,10 +307,6 @@ public class SecurityConfig {
                         .authenticated()
 
 
-                        /*
-                         * Gestion administrative
-                         * des rendez-vous.
-                         */
                         .requestMatchers(
                                 "/api/appointments/**"
                         )
@@ -350,23 +316,37 @@ public class SecurityConfig {
                         )
 
 
-                        /*
-                         * =========================================
-                         * TRANSACTIONS
-                         * =========================================
-                         *
-                         * Pour le moment, seuls ADMIN et AGENT
-                         * ont accès aux opérations générales
-                         * sur les transactions.
-                         *
-                         * Nous ajouterons /transactions/me
-                         * lorsque le module sera implémenté.
-                         */
+                        // ==========================================
+                        // PROJETS
+                        // ==========================================
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/projects/**"
+                        )
+                        .permitAll()
+
+
+                        .requestMatchers(
+                                "/api/projects/**"
+                        )
+                        .hasAnyRole(
+                                "ADMIN",
+                                "AGENT"
+                        )
+
+
+                        // ==========================================
+                        // TRANSACTIONS
+                        // ==========================================
+
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/transactions/me"
                         )
                         .authenticated()
+
+
                         .requestMatchers(
                                 "/api/transactions/**"
                         )
@@ -376,16 +356,17 @@ public class SecurityConfig {
                         )
 
 
-                        /*
-                         * =========================================
-                         * PAIEMENTS
-                         * =========================================
-                         */
+                        // ==========================================
+                        // PAIEMENTS
+                        // ==========================================
+
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/payments/me"
                         )
                         .authenticated()
+
+
                         .requestMatchers(
                                 "/api/payments/**"
                         )
@@ -393,75 +374,60 @@ public class SecurityConfig {
                                 "ADMIN",
                                 "AGENT"
                         )
-// =============================
-// DOCUMENTS DE TRANSACTION
-// =============================
 
-                                .requestMatchers(
-                                        HttpMethod.GET,
-                                        "/api/transaction-documents/me"
-                                )
-                                .authenticated()
 
-                                .requestMatchers(
-                                        "/api/transaction-documents/**"
-                                )
-                                .hasAnyRole(
-                                        "ADMIN",
-                                        "AGENT"
-                                )
+                        // ==========================================
+                        // DOCUMENTS
+                        // ==========================================
 
-                                // =============================
-// PROJETS
-// =============================
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/transaction-documents/me"
+                        )
+                        .authenticated()
 
-                                .requestMatchers(
-                                        HttpMethod.GET,
-                                        "/api/projects/**"
-                                )
-                                .permitAll()
 
-                                .requestMatchers(
-                                        "/api/projects/**"
-                                )
-                                .hasAnyRole(
-                                        "ADMIN",
-                                        "AGENT"
-                                )
+                        .requestMatchers(
+                                "/api/transaction-documents/**"
+                        )
+                        .hasAnyRole(
+                                "ADMIN",
+                                "AGENT"
+                        )
 
-                                // =============================
-// PARTENAIRES
-// =============================
 
-                                .requestMatchers(
-                                        "/api/partners/**"
-                                )
-                                .hasAnyRole(
-                                        "ADMIN",
-                                        "AGENT"
-                                )
+                        // ==========================================
+                        // PARTENAIRES
+                        // ==========================================
 
-                        /*
-                         * =========================================
-                         * ADMINISTRATION
-                         * =========================================
-                         *
-                         * Zone exclusivement réservée
-                         * aux administrateurs.
-                         */
+                        .requestMatchers(
+                                "/api/partners/**"
+                        )
+                        .hasAnyRole(
+                                "ADMIN",
+                                "AGENT"
+                        )
+
+
+                        .requestMatchers(
+                                "/api/agent/**"
+                        )
+                        .hasRole("AGENT")
+
+                        // ==========================================
+                        // ADMIN
+                        // ==========================================
+
                         .requestMatchers(
                                 "/api/admin/**"
                         )
-                        .hasRole(
-                                "ADMIN"
-                        )
+                        .hasRole("ADMIN")
 
 
-                        /*
-                         * =========================================
-                         * RACINE / ERREURS
-                         * =========================================
-                         */
+                        // ==========================================
+                        // PUBLIC
+                        // ==========================================
+
                         .requestMatchers(
                                 "/",
                                 "/error"
@@ -469,37 +435,16 @@ public class SecurityConfig {
                         .permitAll()
 
 
-                        /*
-                         * =========================================
-                         * AUTRES ENDPOINTS
-                         * =========================================
-                         *
-                         * Par défaut, toute route non déclarée
-                         * nécessite au minimum un JWT valide.
-                         */
                         .anyRequest()
                         .authenticated()
                 )
 
 
-                /*
-                 * =================================================
-                 * AUTHENTICATION PROVIDER
-                 * =================================================
-                 */
                 .authenticationProvider(
                         authenticationProvider()
                 )
 
 
-                /*
-                 * =================================================
-                 * JWT FILTER
-                 * =================================================
-                 *
-                 * Le filtre JWT est exécuté avant le filtre
-                 * d'authentification standard de Spring Security.
-                 */
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
@@ -507,5 +452,79 @@ public class SecurityConfig {
 
 
         return http.build();
+    }
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+
+        CorsConfiguration configuration =
+                new CorsConfiguration();
+
+        /*
+         * Frontend Angular local
+         */
+        configuration.setAllowedOrigins(
+                List.of(
+                        "http://localhost:4200"
+                )
+        );
+
+        /*
+         * Méthodes HTTP utilisées par l'API
+         */
+        configuration.setAllowedMethods(
+                List.of(
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "PATCH",
+                        "DELETE",
+                        "OPTIONS"
+                )
+        );
+
+        /*
+         * Headers envoyés notamment par Angular
+         * et plus tard par notre JWT interceptor.
+         */
+        configuration.setAllowedHeaders(
+                List.of(
+                        "Authorization",
+                        "Content-Type",
+                        "Accept"
+                )
+        );
+
+        /*
+         * Headers que le navigateur peut lire.
+         */
+        configuration.setExposedHeaders(
+                List.of(
+                        "Authorization"
+                )
+        );
+
+        /*
+         * Pour le moment nous n'utilisons pas
+         * de cookie de session.
+         *
+         * L'authentification repose sur JWT.
+         */
+        configuration.setAllowCredentials(false);
+
+        /*
+         * Cache du preflight CORS.
+         */
+        configuration.setMaxAge(3600L);
+
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration(
+                "/**",
+                configuration
+        );
+
+        return source;
     }
 }

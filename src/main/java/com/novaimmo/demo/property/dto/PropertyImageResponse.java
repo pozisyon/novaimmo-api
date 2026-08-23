@@ -1,21 +1,18 @@
 package com.novaimmo.demo.property.dto;
 
+public record PropertyImageResponse(
 
+        Long id,
 
-    public record PropertyImageResponse(
+        Long propertyId,
 
-            Long id,
+        String imageUrl,
 
-            Long propertyId,
+        String titre,
 
-            String imageUrl,
+        Boolean principale,
 
-            String titre,
+        Integer ordreAffichage
 
-            Boolean principale,
-
-            Integer ordreAffichage
-
-    ) {
-
+) {
 }

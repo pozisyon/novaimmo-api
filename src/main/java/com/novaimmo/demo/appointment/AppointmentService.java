@@ -3,13 +3,13 @@ package com.novaimmo.demo.appointment;
 import com.novaimmo.demo.appointment.dto.AppointmentResponse;
 import com.novaimmo.demo.appointment.dto.CreateAppointmentRequest;
 import com.novaimmo.demo.appointment.dto.RescheduleAppointmentRequest;
-
 import com.novaimmo.demo.auth.CurrentUserService;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class AppointmentService {
@@ -27,22 +27,23 @@ public class AppointmentService {
     }
 
 
-    /*
-     * =========================================================
-     * CREATION D'UN RENDEZ-VOUS
-     * =========================================================
-     */
+    // =========================================================
+    // CREATION
+    // =========================================================
+
     @Transactional
     public AppointmentResponse create(
             CreateAppointmentRequest request
     ) {
 
-        /*
-         * Vérification de cohérence des dates.
-         */
-        if (request.dateFin() != null
-                && request.dateFin()
-                .isBefore(request.dateDebut())) {
+        if (
+                request.dateFin() != null
+                        &&
+                        request.dateFin()
+                                .isBefore(
+                                        request.dateDebut()
+                                )
+        ) {
 
             throw new RuntimeException(
                     "La date de fin ne peut pas précéder la date de début"
@@ -52,29 +53,6 @@ public class AppointmentService {
 
         Appointment appointment =
                 new Appointment();
-
-
-        /*
-         * =====================================================
-         * ASSOCIATION AUTOMATIQUE AU CLIENT CONNECTE
-         * =====================================================
-         *
-         * Si la personne possède un JWT valide,
-         * son identifiant est automatiquement récupéré.
-         *
-         * Sinon, le rendez-vous reste associé
-         * à un visiteur anonyme.
-         */
-        if (currentUserService.isAuthenticated()) {
-
-            appointment.setClientId(
-                    currentUserService.getCurrentUserId()
-            );
-
-        } else {
-
-            appointment.setClientId(null);
-        }
 
 
         appointment.setNomContact(
@@ -109,24 +87,54 @@ public class AppointmentService {
                 request.notes()
         );
 
+
+        /*
+         * =====================================================
+         * ASSOCIATION AU CLIENT CONNECTE
+         * =====================================================
+         *
+         * Si un utilisateur est authentifié,
+         * son id est automatiquement associé
+         * au rendez-vous.
+         *
+         * Si personne n'est connecté,
+         * client_id reste NULL.
+         */
+
+        Optional<Long> currentUserId =
+                currentUserService
+                        .getCurrentUserIdOptional();
+
+
+        if (currentUserId.isPresent()) {
+
+            appointment.setClientId(
+                    currentUserId.get()
+            );
+        }
+
+
         appointment.setStatut(
                 "DEMANDE"
         );
 
 
+        Appointment saved =
+                repository.save(
+                        appointment
+                );
+
+
         return toResponse(
-                repository.save(appointment)
+                saved
         );
     }
 
 
-    /*
-     * =========================================================
-     * LISTE COMPLETE
-     * =========================================================
-     *
-     * Destinée principalement aux AGENT / ADMIN.
-     */
+    // =========================================================
+    // LISTE COMPLETE
+    // =========================================================
+
     public List<AppointmentResponse> findAll() {
 
         return repository
@@ -137,11 +145,10 @@ public class AppointmentService {
     }
 
 
-    /*
-     * =========================================================
-     * RENDEZ-VOUS EN ATTENTE
-     * =========================================================
-     */
+    // =========================================================
+    // RENDEZ-VOUS EN ATTENTE
+    // =========================================================
+
     public List<AppointmentResponse> findPending() {
 
         return repository
@@ -154,12 +161,11 @@ public class AppointmentService {
     }
 
 
-    /*
-     * =========================================================
-     * RENDEZ-VOUS DU CLIENT CONNECTE
-     * =========================================================
-     */
-    public List<AppointmentResponse> findMyAppointments() {
+    // =========================================================
+    // MES RENDEZ-VOUS
+    // =========================================================
+
+    public List<AppointmentResponse> findMine() {
 
         Long clientId =
                 currentUserService
@@ -177,10 +183,19 @@ public class AppointmentService {
 
 
     /*
-     * =========================================================
-     * RECHERCHE PAR ID
-     * =========================================================
+     * Méthode gardée pour compatibilité
+     * avec AppointmentController.
      */
+    public List<AppointmentResponse> findMyAppointments() {
+
+        return findMine();
+    }
+
+
+    // =========================================================
+    // RECHERCHE PAR ID
+    // =========================================================
+
     public AppointmentResponse findById(
             Long id
     ) {
@@ -191,11 +206,10 @@ public class AppointmentService {
     }
 
 
-    /*
-     * =========================================================
-     * CONFIRMER
-     * =========================================================
-     */
+    // =========================================================
+    // CONFIRMER
+    // =========================================================
+
     @Transactional
     public AppointmentResponse confirm(
             Long id
@@ -205,12 +219,15 @@ public class AppointmentService {
                 findEntity(id);
 
 
-        if (!"DEMANDE".equals(
-                appointment.getStatut()
-        )
-                && !"REPORTE".equals(
-                appointment.getStatut()
-        )) {
+        if (
+                !"DEMANDE".equals(
+                        appointment.getStatut()
+                )
+                        &&
+                        !"REPORTE".equals(
+                                appointment.getStatut()
+                        )
+        ) {
 
             throw new RuntimeException(
                     "Ce rendez-vous ne peut pas être confirmé"
@@ -224,16 +241,17 @@ public class AppointmentService {
 
 
         return toResponse(
-                repository.save(appointment)
+                repository.save(
+                        appointment
+                )
         );
     }
 
 
-    /*
-     * =========================================================
-     * ANNULER
-     * =========================================================
-     */
+    // =========================================================
+    // ANNULER
+    // =========================================================
+
     @Transactional
     public AppointmentResponse cancel(
             Long id
@@ -243,25 +261,14 @@ public class AppointmentService {
                 findEntity(id);
 
 
-        if ("TERMINE".equals(
-                appointment.getStatut()
-        )) {
+        if (
+                "TERMINE".equals(
+                        appointment.getStatut()
+                )
+        ) {
 
             throw new RuntimeException(
                     "Un rendez-vous terminé ne peut pas être annulé"
-            );
-        }
-
-
-        /*
-         * Évite de réannuler plusieurs fois.
-         */
-        if ("ANNULE".equals(
-                appointment.getStatut()
-        )) {
-
-            throw new RuntimeException(
-                    "Ce rendez-vous est déjà annulé"
             );
         }
 
@@ -272,16 +279,17 @@ public class AppointmentService {
 
 
         return toResponse(
-                repository.save(appointment)
+                repository.save(
+                        appointment
+                )
         );
     }
 
 
-    /*
-     * =========================================================
-     * TERMINER
-     * =========================================================
-     */
+    // =========================================================
+    // TERMINER
+    // =========================================================
+
     @Transactional
     public AppointmentResponse complete(
             Long id
@@ -291,9 +299,11 @@ public class AppointmentService {
                 findEntity(id);
 
 
-        if (!"CONFIRME".equals(
-                appointment.getStatut()
-        )) {
+        if (
+                !"CONFIRME".equals(
+                        appointment.getStatut()
+                )
+        ) {
 
             throw new RuntimeException(
                     "Seul un rendez-vous confirmé peut être terminé"
@@ -307,16 +317,17 @@ public class AppointmentService {
 
 
         return toResponse(
-                repository.save(appointment)
+                repository.save(
+                        appointment
+                )
         );
     }
 
 
-    /*
-     * =========================================================
-     * REPORTER
-     * =========================================================
-     */
+    // =========================================================
+    // REPORTER
+    // =========================================================
+
     @Transactional
     public AppointmentResponse reschedule(
             Long id,
@@ -327,12 +338,15 @@ public class AppointmentService {
                 findEntity(id);
 
 
-        if ("ANNULE".equals(
-                appointment.getStatut()
-        )
-                || "TERMINE".equals(
-                appointment.getStatut()
-        )) {
+        if (
+                "ANNULE".equals(
+                        appointment.getStatut()
+                )
+                        ||
+                        "TERMINE".equals(
+                                appointment.getStatut()
+                        )
+        ) {
 
             throw new RuntimeException(
                     "Ce rendez-vous ne peut plus être reporté"
@@ -340,45 +354,18 @@ public class AppointmentService {
         }
 
 
-        if (request.nouvelleDateFin() != null
-                && request.nouvelleDateFin()
-                .isBefore(
-                        request.nouvelleDateDebut()
-                )) {
+        if (
+                request.nouvelleDateFin() != null
+                        &&
+                        request.nouvelleDateFin()
+                                .isBefore(
+                                        request.nouvelleDateDebut()
+                                )
+        ) {
 
             throw new RuntimeException(
                     "La nouvelle date de fin est invalide"
             );
-        }
-
-
-        /*
-         * Si un agent est déjà affecté,
-         * on vérifie qu'il n'a pas déjà
-         * un rendez-vous sur ce créneau.
-         */
-        if (appointment.getAgentId() != null) {
-
-            boolean occupied =
-                    repository
-                            .existsByAgentIdAndDateDebut(
-                                    appointment.getAgentId(),
-                                    request.nouvelleDateDebut()
-                            );
-
-
-            /*
-             * Si la date ne change pas,
-             * la requête peut retrouver le rendez-vous courant.
-             */
-            if (occupied
-                    && !appointment.getDateDebut()
-                    .equals(request.nouvelleDateDebut())) {
-
-                throw new RuntimeException(
-                        "L'agent a déjà un rendez-vous à cette heure"
-                );
-            }
         }
 
 
@@ -391,8 +378,9 @@ public class AppointmentService {
         );
 
 
-        if (request.notes() != null
-                && !request.notes().isBlank()) {
+        if (
+                request.notes() != null
+        ) {
 
             appointment.setNotes(
                     request.notes()
@@ -406,16 +394,17 @@ public class AppointmentService {
 
 
         return toResponse(
-                repository.save(appointment)
+                repository.save(
+                        appointment
+                )
         );
     }
 
 
-    /*
-     * =========================================================
-     * AFFECTATION D'UN AGENT
-     * =========================================================
-     */
+    // =========================================================
+    // ASSIGNER UN AGENT
+    // =========================================================
+
     @Transactional
     public AppointmentResponse assignAgent(
             Long appointmentId,
@@ -423,20 +412,9 @@ public class AppointmentService {
     ) {
 
         Appointment appointment =
-                findEntity(appointmentId);
-
-
-        if ("ANNULE".equals(
-                appointment.getStatut()
-        )
-                || "TERMINE".equals(
-                appointment.getStatut()
-        )) {
-
-            throw new RuntimeException(
-                    "Impossible d'affecter un agent à ce rendez-vous"
-            );
-        }
+                findEntity(
+                        appointmentId
+                );
 
 
         boolean occupied =
@@ -447,10 +425,7 @@ public class AppointmentService {
                         );
 
 
-        if (occupied
-                && !agentId.equals(
-                appointment.getAgentId()
-        )) {
+        if (occupied) {
 
             throw new RuntimeException(
                     "Cet agent a déjà un rendez-vous à cette heure"
@@ -464,16 +439,17 @@ public class AppointmentService {
 
 
         return toResponse(
-                repository.save(appointment)
+                repository.save(
+                        appointment
+                )
         );
     }
 
 
-    /*
-     * =========================================================
-     * ENTITE INTERNE
-     * =========================================================
-     */
+    // =========================================================
+    // RECHERCHE INTERNE
+    // =========================================================
+
     private Appointment findEntity(
             Long id
     ) {
@@ -481,18 +457,18 @@ public class AppointmentService {
         return repository
                 .findById(id)
                 .orElseThrow(
-                        () -> new RuntimeException(
-                                "Rendez-vous introuvable : " + id
-                        )
+                        () ->
+                                new RuntimeException(
+                                        "Rendez-vous introuvable"
+                                )
                 );
     }
 
 
-    /*
-     * =========================================================
-     * MAPPING ENTITE -> DTO
-     * =========================================================
-     */
+    // =========================================================
+    // CONVERSION EN DTO
+    // =========================================================
+
     private AppointmentResponse toResponse(
             Appointment appointment
     ) {

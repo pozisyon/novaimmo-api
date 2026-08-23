@@ -4,7 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -36,6 +36,25 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiError> handleAuthenticationException(
+            AuthenticationException exception,
+            HttpServletRequest request
+    ) {
+
+        ApiError error =
+                new ApiError(
+                        401,
+                        "UNAUTHORIZED",
+                        "Email ou mot de passe incorrect",
+                        request.getRequestURI(),
+                        LocalDateTime.now()
+                );
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(error);
+    }
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiError> handleBusiness(
@@ -98,12 +117,32 @@ public class GlobalExceptionHandler {
 
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiError> handleGeneric(
-
+    public ResponseEntity<ApiError> handleGenericException(
             Exception exception,
-
             HttpServletRequest request
     ) {
+
+        System.err.println(
+                "========== ERREUR NOVAIMMO =========="
+        );
+
+        System.err.println(
+                "PATH : " + request.getRequestURI()
+        );
+
+        System.err.println(
+                "TYPE : " + exception.getClass().getName()
+        );
+
+        System.err.println(
+                "MESSAGE : " + exception.getMessage()
+        );
+
+        exception.printStackTrace();
+
+        System.err.println(
+                "====================================="
+        );
 
         ApiError error =
                 new ApiError(
@@ -115,9 +154,7 @@ public class GlobalExceptionHandler {
                 );
 
         return ResponseEntity
-                .status(
-                        HttpStatus.INTERNAL_SERVER_ERROR
-                )
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(error);
     }
 }

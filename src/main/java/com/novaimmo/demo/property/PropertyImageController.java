@@ -1,7 +1,7 @@
 package com.novaimmo.demo.property;
 
 
-
+import org.springframework.web.multipart.MultipartFile;
 import com.novaimmo.demo.property.dto.CreatePropertyImageRequest;
 import com.novaimmo.demo.property.dto.PropertyImageResponse;
 
@@ -93,6 +93,46 @@ import java.util.List;
             service.delete(
                     propertyId,
                     imageId
+            );
+        }
+
+        @PostMapping(
+                value = "/upload",
+                consumes = "multipart/form-data"
+        )
+        @ResponseStatus(HttpStatus.CREATED)
+        public PropertyImageResponse upload(
+
+                @PathVariable Long propertyId,
+
+                @RequestParam("file")
+                MultipartFile file,
+
+                @RequestParam(
+                        value = "titre",
+                        required = false
+                )
+                String titre,
+
+                @RequestParam(
+                        value = "principale",
+                        defaultValue = "false"
+                )
+                Boolean principale,
+
+                @RequestParam(
+                        value = "ordreAffichage",
+                        defaultValue = "0"
+                )
+                Integer ordreAffichage
+        ) {
+
+            return service.upload(
+                    propertyId,
+                    file,
+                    titre,
+                    principale,
+                    ordreAffichage
             );
         }
 

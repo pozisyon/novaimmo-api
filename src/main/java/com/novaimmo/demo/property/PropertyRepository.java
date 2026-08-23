@@ -15,4 +15,6 @@ import java.util.List;
 
         List<Property> findByTransactionType(String transactionType);
 
+        long countByStatut(String statut);
+        boolean existsByReference(String reference);
 }

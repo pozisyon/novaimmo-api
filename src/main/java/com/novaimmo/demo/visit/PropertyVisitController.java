@@ -1,20 +1,17 @@
 package com.novaimmo.demo.visit;
 
-
 import com.novaimmo.demo.visit.dto.CreatePropertyVisitRequest;
 import com.novaimmo.demo.visit.dto.PropertyVisitResponse;
 import com.novaimmo.demo.visit.dto.RescheduleVisitRequest;
-
-import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*")
 public class PropertyVisitController {
 
     private final PropertyVisitService service;
@@ -28,18 +25,18 @@ public class PropertyVisitController {
 
 
     /*
-     * Client :
-     * demander une visite
+     * =========================================================
+     * CREER UNE VISITE POUR UNE PROPRIETE
+     * =========================================================
      */
-    @PostMapping("/properties/{propertyId}/visits")
+
+    @PostMapping(
+            "/properties/{propertyId}/visits"
+    )
     @ResponseStatus(HttpStatus.CREATED)
     public PropertyVisitResponse create(
-
             @PathVariable Long propertyId,
-
-            @Valid
-            @RequestBody
-            CreatePropertyVisitRequest request
+            @RequestBody CreatePropertyVisitRequest request
     ) {
 
         return service.create(
@@ -50,18 +47,45 @@ public class PropertyVisitController {
 
 
     /*
-     * Administration
+     * =========================================================
+     * MES VISITES
+     * =========================================================
      */
-    @GetMapping("/visits")
+
+    @GetMapping(
+            "/visits/me"
+    )
+    public List<PropertyVisitResponse> findMyVisits() {
+
+        return service.findMyVisits();
+    }
+
+
+    /*
+     * =========================================================
+     * TOUTES LES VISITES
+     * =========================================================
+     */
+
+    @GetMapping(
+            "/visits"
+    )
     public List<PropertyVisitResponse> findAll() {
 
         return service.findAll();
     }
 
 
-    @GetMapping("/visits/{id}")
-    public PropertyVisitResponse findById(
+    /*
+     * =========================================================
+     * VISITE PAR ID
+     * =========================================================
+     */
 
+    @GetMapping(
+            "/visits/{id}"
+    )
+    public PropertyVisitResponse findById(
             @PathVariable Long id
     ) {
 
@@ -69,19 +93,16 @@ public class PropertyVisitController {
     }
 
 
-    @GetMapping("/visits/pending")
-    public List<PropertyVisitResponse> pending() {
-
-        return service.findPending();
-    }
-
-
     /*
-     * Toutes les visites d'une propriété
+     * =========================================================
+     * VISITES D'UNE PROPRIETE
+     * =========================================================
      */
-    @GetMapping("/properties/{propertyId}/visits")
-    public List<PropertyVisitResponse> findByProperty(
 
+    @GetMapping(
+            "/properties/{propertyId}/visits"
+    )
+    public List<PropertyVisitResponse> findByProperty(
             @PathVariable Long propertyId
     ) {
 
@@ -92,11 +113,30 @@ public class PropertyVisitController {
 
 
     /*
-     * Confirmer
+     * =========================================================
+     * VISITES EN ATTENTE
+     * =========================================================
      */
-    @PatchMapping("/visits/{id}/confirm")
-    public PropertyVisitResponse confirm(
 
+    @GetMapping(
+            "/visits/pending"
+    )
+    public List<PropertyVisitResponse> findPending() {
+
+        return service.findPending();
+    }
+
+
+    /*
+     * =========================================================
+     * CONFIRMER
+     * =========================================================
+     */
+
+    @PatchMapping(
+            "/visits/{id}/confirm"
+    )
+    public PropertyVisitResponse confirm(
             @PathVariable Long id
     ) {
 
@@ -105,16 +145,17 @@ public class PropertyVisitController {
 
 
     /*
-     * Reporter
+     * =========================================================
+     * REPORTER
+     * =========================================================
      */
-    @PatchMapping("/visits/{id}/reschedule")
+
+    @PatchMapping(
+            "/visits/{id}/reschedule"
+    )
     public PropertyVisitResponse reschedule(
-
             @PathVariable Long id,
-
-            @Valid
-            @RequestBody
-            RescheduleVisitRequest request
+            @RequestBody RescheduleVisitRequest request
     ) {
 
         return service.reschedule(
@@ -125,11 +166,15 @@ public class PropertyVisitController {
 
 
     /*
-     * Annuler
+     * =========================================================
+     * ANNULER
+     * =========================================================
      */
-    @PatchMapping("/visits/{id}/cancel")
-    public PropertyVisitResponse cancel(
 
+    @PatchMapping(
+            "/visits/{id}/cancel"
+    )
+    public PropertyVisitResponse cancel(
             @PathVariable Long id
     ) {
 
@@ -138,11 +183,15 @@ public class PropertyVisitController {
 
 
     /*
-     * Marquer comme effectuée
+     * =========================================================
+     * TERMINER
+     * =========================================================
      */
-    @PatchMapping("/visits/{id}/complete")
-    public PropertyVisitResponse complete(
 
+    @PatchMapping(
+            "/visits/{id}/complete"
+    )
+    public PropertyVisitResponse complete(
             @PathVariable Long id
     ) {
 
@@ -151,15 +200,16 @@ public class PropertyVisitController {
 
 
     /*
-     * Affectation d'un agent
+     * =========================================================
+     * ASSIGNER UN AGENT
+     * =========================================================
      */
+
     @PatchMapping(
             "/visits/{visitId}/agent/{agentId}"
     )
     public PropertyVisitResponse assignAgent(
-
             @PathVariable Long visitId,
-
             @PathVariable Long agentId
     ) {
 

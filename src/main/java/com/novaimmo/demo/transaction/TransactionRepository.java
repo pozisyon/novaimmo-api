@@ -35,4 +35,18 @@ public interface TransactionRepository
     boolean existsByReference(
             String reference
     );
+    long countByAgentId(
+            Long agentId
+    );
+
+    long countByAgentIdAndStatut(
+            Long agentId,
+            String statut
+    );
+    Optional<Transaction> findByIdAndAgentId(
+            Long id,
+            Long agentId
+    );
+
+    long countByStatut(String statut);
 }
